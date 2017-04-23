@@ -1,0 +1,20 @@
+Source: postgresql-number
+Section: database
+Priority: optional
+Maintainer: Christoph Berg <myon@debian.org>
+Build-Depends:
+ debhelper (>> 9),
+ postgresql-server-dev-all (>= 153~),
+Standards-Version: 3.9.8
+Vcs-Git: https://github.com/ChristophBerg/postgresql-number.git
+Vcs-Browser: https://github.com/ChristophBerg/postgresql-number
+Homepage: https://github.com/ChristophBerg/postgresql-number
+
+Package: postgresql-9.6-number
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}, postgresql-9.6
+Description: variable-width integer datatype for PostgreSQL
+ The PostgreSQL "number" datatype stores 64-bit integer values efficiently
+ using a variable-length representation on disk. Depending on the value,
+ between 1 (for zero) and 9 bytes (for values beyond +-2^55) are used.
+

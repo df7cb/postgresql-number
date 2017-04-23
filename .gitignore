@@ -1,0 +1,5 @@
+number.o
+number.so
+regression.diffs
+regression.out
+results/

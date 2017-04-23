@@ -1,0 +1,5 @@
+postgresql-number (1.0) UNRELASED; urgency=medium
+
+  * Initial release.
+
+ -- Christoph Berg <myon@debian.org>  Sun, 23 Apr 2017 16:28:26 +0200
