@@ -22,7 +22,7 @@ SOFTWARE.
 
 #include "postgres.h"
 #include "fmgr.h"
-#include <limits.h>
+#include <inttypes.h> /* PRId64 */
 
 #include "number.h"
 
@@ -167,7 +167,7 @@ Datum
 number_in (PG_FUNCTION_ARGS)
 {
 	char		*str = PG_GETARG_CSTRING(0);
-	PG_RETURN_POINTER(number_from_int64(atol(str)));
+	PG_RETURN_POINTER(number_from_int64(atoll(str)));
 }
 
 PG_FUNCTION_INFO_V1(number_out);
@@ -176,7 +176,7 @@ Datum
 number_out(PG_FUNCTION_ARGS)
 {
 	Number  *n = (Number *) PG_GETARG_VARLENA_P(0);
-	PG_RETURN_CSTRING(psprintf("%ld", number_to_int64(n)));
+	PG_RETURN_CSTRING(psprintf("%" PRId64, number_to_int64(n)));
 }
 
 PG_FUNCTION_INFO_V1 (number_from_int);
