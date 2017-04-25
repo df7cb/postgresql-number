@@ -35,3 +35,29 @@ SELECT number(1); -- explicit call
 SELECT 1::number; -- cast from int
 SELECT 549755813887::number; -- cast from bigint
 SELECT 1::number + 2::number; -- implicit cast to bigint
+
+-- test comparisons
+WITH
+  v(u) AS (VALUES ('-1'::number), ('0'::number), ('1'::number)),
+  va(a) AS (SELECT * FROM v),
+  vb(b) AS (SELECT * FROM v)
+SELECT
+  a, b,
+  CASE WHEN number_cmp(a, b) < 0 THEN '<'
+       WHEN number_cmp(a, b) = 0 THEN '='
+       WHEN number_cmp(a, b) > 0 THEN '>'
+  END AS cmp,
+  a < b  AS lt, a <= b AS le,
+  a = b  AS eq, a <> b AS ne,
+  a >= b AS ge, a > b  AS gt
+FROM
+  va CROSS JOIN vb;
+
+-- test btree index
+CREATE TABLE numtab (num number);
+INSERT INTO numtab SELECT generate_series(-100000, 100000);
+ANALYZE numtab;
+CREATE INDEX ON numtab(num);
+SELECT * FROM numtab WHERE num = 1000::number;
+EXPLAIN (COSTS OFF) SELECT * FROM numtab WHERE num = 1000::number;
+EXPLAIN (COSTS OFF) SELECT * FROM numtab WHERE num = 1000;

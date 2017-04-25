@@ -1,5 +1,6 @@
 /*
 Copyright (c) 2017, PostgreSQL Global Development Group
+Author: Christoph Berg <cb@df7cb.de>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -159,6 +160,16 @@ number_to_int64 (Number *n)
 	}
 }
 
+static int
+number_cmp_internal (Number *a, Number *b)
+{
+	int64_t ia = number_to_int64(a);
+	int64_t ib = number_to_int64(b);
+	if (ia < ib)
+		return -1;
+	return ia > ib;
+}
+
 /* functions */
 
 PG_FUNCTION_INFO_V1 (number_in);
@@ -205,3 +216,83 @@ number_to_bigint (PG_FUNCTION_ARGS)
 	Number  *n = (Number *) PG_GETARG_VARLENA_P(0);
 	PG_RETURN_INT64(number_to_int64(n));
 }
+
+/* comparisons */
+
+PG_FUNCTION_INFO_V1(number_lt);
+
+Datum
+number_lt(PG_FUNCTION_ARGS)
+{
+	Number  *a = (Number *) PG_GETARG_VARLENA_P(0);
+	Number  *b = (Number *) PG_GETARG_VARLENA_P(1);
+
+	PG_RETURN_BOOL(number_cmp_internal(a, b) < 0);
+}
+
+PG_FUNCTION_INFO_V1(number_le);
+
+Datum
+number_le(PG_FUNCTION_ARGS)
+{
+	Number  *a = (Number *) PG_GETARG_VARLENA_P(0);
+	Number  *b = (Number *) PG_GETARG_VARLENA_P(1);
+
+	PG_RETURN_BOOL(number_cmp_internal(a, b) <= 0);
+}
+
+PG_FUNCTION_INFO_V1(number_eq);
+
+Datum
+number_eq(PG_FUNCTION_ARGS)
+{
+	Number  *a = (Number *) PG_GETARG_VARLENA_P(0);
+	Number  *b = (Number *) PG_GETARG_VARLENA_P(1);
+
+	PG_RETURN_BOOL(number_cmp_internal(a, b) == 0);
+}
+
+PG_FUNCTION_INFO_V1(number_ne);
+
+Datum
+number_ne(PG_FUNCTION_ARGS)
+{
+	Number  *a = (Number *) PG_GETARG_VARLENA_P(0);
+	Number  *b = (Number *) PG_GETARG_VARLENA_P(1);
+
+	PG_RETURN_BOOL(number_cmp_internal(a, b) != 0);
+}
+
+PG_FUNCTION_INFO_V1(number_ge);
+
+Datum
+number_ge(PG_FUNCTION_ARGS)
+{
+	Number  *a = (Number *) PG_GETARG_VARLENA_P(0);
+	Number  *b = (Number *) PG_GETARG_VARLENA_P(1);
+
+	PG_RETURN_BOOL(number_cmp_internal(a, b) >= 0);
+}
+
+PG_FUNCTION_INFO_V1(number_gt);
+
+Datum
+number_gt(PG_FUNCTION_ARGS)
+{
+	Number  *a = (Number *) PG_GETARG_VARLENA_P(0);
+	Number  *b = (Number *) PG_GETARG_VARLENA_P(1);
+
+	PG_RETURN_BOOL(number_cmp_internal(a, b) > 0);
+}
+
+PG_FUNCTION_INFO_V1(number_cmp);
+
+Datum
+number_cmp(PG_FUNCTION_ARGS)
+{
+	Number  *a = (Number *) PG_GETARG_VARLENA_P(0);
+	Number  *b = (Number *) PG_GETARG_VARLENA_P(1);
+
+	PG_RETURN_INT32(number_cmp_internal(a, b));
+}
+

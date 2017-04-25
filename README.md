@@ -69,6 +69,7 @@ SELECT n1, n2, pg_column_size(n1), pg_column_size(n2) FROM num;
 License
 -------
 Copyright (c) 2017, PostgreSQL Global Development Group
+Author: Christoph Berg <cb@df7cb.de>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

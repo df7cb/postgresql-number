@@ -87,3 +87,57 @@ SELECT 1::number + 2::number; -- implicit cast to bigint
         3
 (1 row)
 
+-- test comparisons
+WITH
+  v(u) AS (VALUES ('-1'::number), ('0'::number), ('1'::number)),
+  va(a) AS (SELECT * FROM v),
+  vb(b) AS (SELECT * FROM v)
+SELECT
+  a, b,
+  CASE WHEN number_cmp(a, b) < 0 THEN '<'
+       WHEN number_cmp(a, b) = 0 THEN '='
+       WHEN number_cmp(a, b) > 0 THEN '>'
+  END AS cmp,
+  a < b  AS lt, a <= b AS le,
+  a = b  AS eq, a <> b AS ne,
+  a >= b AS ge, a > b  AS gt
+FROM
+  va CROSS JOIN vb;
+ a  | b  | cmp | lt | le | eq | ne | ge | gt 
+----+----+-----+----+----+----+----+----+----
+ -1 | -1 | =   | f  | t  | t  | f  | t  | f
+ -1 | 0  | <   | t  | t  | f  | t  | f  | f
+ -1 | 1  | <   | t  | t  | f  | t  | f  | f
+ 0  | -1 | >   | f  | f  | f  | t  | t  | t
+ 0  | 0  | =   | f  | t  | t  | f  | t  | f
+ 0  | 1  | <   | t  | t  | f  | t  | f  | f
+ 1  | -1 | >   | f  | f  | f  | t  | t  | t
+ 1  | 0  | >   | f  | f  | f  | t  | t  | t
+ 1  | 1  | =   | f  | t  | t  | f  | t  | f
+(9 rows)
+
+-- test btree index
+CREATE TABLE numtab (num number);
+INSERT INTO numtab SELECT generate_series(-100000, 100000);
+ANALYZE numtab;
+CREATE INDEX ON numtab(num);
+SELECT * FROM numtab WHERE num = 1000::number;
+ num  
+------
+ 1000
+(1 row)
+
+EXPLAIN (COSTS OFF) SELECT * FROM numtab WHERE num = 1000::number;
+                   QUERY PLAN                   
+------------------------------------------------
+ Index Only Scan using numtab_num_idx on numtab
+   Index Cond: (num = '1000'::number)
+(2 rows)
+
+EXPLAIN (COSTS OFF) SELECT * FROM numtab WHERE num = 1000;
+            QUERY PLAN            
+----------------------------------
+ Seq Scan on numtab
+   Filter: ((num)::bigint = 1000)
+(2 rows)
+
