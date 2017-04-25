@@ -4,6 +4,8 @@ Christoph Berg <cb@df7cb.de>
 
 *Variable-width integer datatype for PostgreSQL*
 
+[![Build Status](https://travis-ci.org/ChristophBerg/postgresql-number.svg?branch=master)](https://travis-ci.org/ChristophBerg/postgresql-number)
+
 The PostgreSQL `number` datatype stores 64-bit integer values efficiently using
 a variable-length representation on disk. Depending on the value, between 1
 (for zero) and 9 bytes (for values beyond +-2^55) are used.
