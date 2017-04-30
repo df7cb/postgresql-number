@@ -160,16 +160,6 @@ number_to_int64 (Number *n)
 	}
 }
 
-static int
-number_cmp_internal (Number *a, Number *b)
-{
-	int64_t ia = number_to_int64(a);
-	int64_t ib = number_to_int64(b);
-	if (ia < ib)
-		return -1;
-	return ia > ib;
-}
-
 /* functions */
 
 PG_FUNCTION_INFO_V1 (number_in);
@@ -217,82 +207,172 @@ number_to_bigint (PG_FUNCTION_ARGS)
 	PG_RETURN_INT64(number_to_int64(n));
 }
 
-/* comparisons */
+/* number-number comparisons */
 
-PG_FUNCTION_INFO_V1(number_lt);
-
-Datum
-number_lt(PG_FUNCTION_ARGS)
-{
-	Number  *a = (Number *) PG_GETARG_VARLENA_P(0);
-	Number  *b = (Number *) PG_GETARG_VARLENA_P(1);
-
-	PG_RETURN_BOOL(number_cmp_internal(a, b) < 0);
+#define number_comp(name, op)										\
+PG_FUNCTION_INFO_V1(name);											\
+																	\
+Datum																\
+name(PG_FUNCTION_ARGS)												\
+{																	\
+	int64_t a = number_to_int64((Number *) PG_GETARG_VARLENA_P(0));	\
+	int64_t b = number_to_int64((Number *) PG_GETARG_VARLENA_P(1));	\
+																	\
+	PG_RETURN_BOOL(a op b);											\
 }
 
-PG_FUNCTION_INFO_V1(number_le);
-
-Datum
-number_le(PG_FUNCTION_ARGS)
-{
-	Number  *a = (Number *) PG_GETARG_VARLENA_P(0);
-	Number  *b = (Number *) PG_GETARG_VARLENA_P(1);
-
-	PG_RETURN_BOOL(number_cmp_internal(a, b) <= 0);
-}
-
-PG_FUNCTION_INFO_V1(number_eq);
-
-Datum
-number_eq(PG_FUNCTION_ARGS)
-{
-	Number  *a = (Number *) PG_GETARG_VARLENA_P(0);
-	Number  *b = (Number *) PG_GETARG_VARLENA_P(1);
-
-	PG_RETURN_BOOL(number_cmp_internal(a, b) == 0);
-}
-
-PG_FUNCTION_INFO_V1(number_ne);
-
-Datum
-number_ne(PG_FUNCTION_ARGS)
-{
-	Number  *a = (Number *) PG_GETARG_VARLENA_P(0);
-	Number  *b = (Number *) PG_GETARG_VARLENA_P(1);
-
-	PG_RETURN_BOOL(number_cmp_internal(a, b) != 0);
-}
-
-PG_FUNCTION_INFO_V1(number_ge);
-
-Datum
-number_ge(PG_FUNCTION_ARGS)
-{
-	Number  *a = (Number *) PG_GETARG_VARLENA_P(0);
-	Number  *b = (Number *) PG_GETARG_VARLENA_P(1);
-
-	PG_RETURN_BOOL(number_cmp_internal(a, b) >= 0);
-}
-
-PG_FUNCTION_INFO_V1(number_gt);
-
-Datum
-number_gt(PG_FUNCTION_ARGS)
-{
-	Number  *a = (Number *) PG_GETARG_VARLENA_P(0);
-	Number  *b = (Number *) PG_GETARG_VARLENA_P(1);
-
-	PG_RETURN_BOOL(number_cmp_internal(a, b) > 0);
-}
+number_comp(number_lt, <);
+number_comp(number_le, <=);
+number_comp(number_eq, ==);
+number_comp(number_ne, !=);
+number_comp(number_ge, >=);
+number_comp(number_gt, >);
 
 PG_FUNCTION_INFO_V1(number_cmp);
 
 Datum
 number_cmp(PG_FUNCTION_ARGS)
 {
-	Number  *a = (Number *) PG_GETARG_VARLENA_P(0);
-	Number  *b = (Number *) PG_GETARG_VARLENA_P(1);
+	int64_t a = number_to_int64((Number *) PG_GETARG_VARLENA_P(0));
+	int64_t b = number_to_int64((Number *) PG_GETARG_VARLENA_P(1));
 
-	PG_RETURN_INT32(number_cmp_internal(a, b));
+	if (a < b)
+		PG_RETURN_INT32(-1);
+	PG_RETURN_INT32(a > b);
 }
 
+/* number-bigint comparisons */
+
+#define number_bigint_comp(name, op)								\
+PG_FUNCTION_INFO_V1(name);											\
+																	\
+Datum																\
+name(PG_FUNCTION_ARGS)												\
+{																	\
+	int64_t a = number_to_int64((Number *) PG_GETARG_VARLENA_P(0));	\
+	int64_t b = PG_GETARG_INT64(1);									\
+																	\
+	PG_RETURN_BOOL(a op b);											\
+}
+
+number_bigint_comp(number_bigint_lt, <);
+number_bigint_comp(number_bigint_le, <=);
+number_bigint_comp(number_bigint_eq, ==);
+number_bigint_comp(number_bigint_ne, !=);
+number_bigint_comp(number_bigint_ge, >=);
+number_bigint_comp(number_bigint_gt, >);
+
+PG_FUNCTION_INFO_V1(number_bigint_cmp);
+
+Datum
+number_bigint_cmp(PG_FUNCTION_ARGS)
+{
+	int64_t a = number_to_int64((Number *) PG_GETARG_VARLENA_P(0));
+	int64_t b = PG_GETARG_INT64(1);
+
+	if (a < b)
+		PG_RETURN_INT32(-1);
+	PG_RETURN_INT32(a > b);
+}
+
+/* bigint-number comparisons */
+
+#define bigint_number_comp(name, op)								\
+PG_FUNCTION_INFO_V1(name);											\
+																	\
+Datum																\
+name(PG_FUNCTION_ARGS)												\
+{																	\
+	int64_t a = PG_GETARG_INT64(0);									\
+	int64_t b = number_to_int64((Number *) PG_GETARG_VARLENA_P(1));	\
+																	\
+	PG_RETURN_BOOL(a op b);											\
+}
+
+bigint_number_comp(bigint_number_lt, <);
+bigint_number_comp(bigint_number_le, <=);
+bigint_number_comp(bigint_number_eq, ==);
+bigint_number_comp(bigint_number_ne, !=);
+bigint_number_comp(bigint_number_ge, >=);
+bigint_number_comp(bigint_number_gt, >);
+
+PG_FUNCTION_INFO_V1(bigint_number_cmp);
+
+Datum
+bigint_number_cmp(PG_FUNCTION_ARGS)
+{
+	int64_t a = PG_GETARG_INT64(0);
+	int64_t b = number_to_int64((Number *) PG_GETARG_VARLENA_P(1));
+
+	if (a < b)
+		PG_RETURN_INT32(-1);
+	PG_RETURN_INT32(a > b);
+}
+
+/* number-int comparisons */
+
+#define number_int_comp(name, op)									\
+PG_FUNCTION_INFO_V1(name);											\
+																	\
+Datum																\
+name(PG_FUNCTION_ARGS)												\
+{																	\
+	int64_t a = number_to_int64((Number *) PG_GETARG_VARLENA_P(0));	\
+	int32_t b = PG_GETARG_INT32(1);									\
+																	\
+	PG_RETURN_BOOL(a op b);											\
+}
+
+number_int_comp(number_int_lt, <);
+number_int_comp(number_int_le, <=);
+number_int_comp(number_int_eq, ==);
+number_int_comp(number_int_ne, !=);
+number_int_comp(number_int_ge, >=);
+number_int_comp(number_int_gt, >);
+
+PG_FUNCTION_INFO_V1(number_int_cmp);
+
+Datum
+number_int_cmp(PG_FUNCTION_ARGS)
+{
+	int64_t a = number_to_int64((Number *) PG_GETARG_VARLENA_P(0));
+	int32_t b = PG_GETARG_INT32(1);
+
+	if (a < b)
+		PG_RETURN_INT32(-1);
+	PG_RETURN_INT32(a > b);
+}
+
+/* int-number comparisons */
+
+#define int_number_comp(name, op)									\
+PG_FUNCTION_INFO_V1(name);											\
+																	\
+Datum																\
+name(PG_FUNCTION_ARGS)												\
+{																	\
+	int32_t a = PG_GETARG_INT32(0);									\
+	int64_t b = number_to_int64((Number *) PG_GETARG_VARLENA_P(1));	\
+																	\
+	PG_RETURN_BOOL(a op b);											\
+}
+
+int_number_comp(int_number_lt, <);
+int_number_comp(int_number_le, <=);
+int_number_comp(int_number_eq, ==);
+int_number_comp(int_number_ne, !=);
+int_number_comp(int_number_ge, >=);
+int_number_comp(int_number_gt, >);
+
+PG_FUNCTION_INFO_V1(int_number_cmp);
+
+Datum
+int_number_cmp(PG_FUNCTION_ARGS)
+{
+	int32_t a = PG_GETARG_INT32(0);
+	int64_t b = number_to_int64((Number *) PG_GETARG_VARLENA_P(1));
+
+	if (a < b)
+		PG_RETURN_INT32(-1);
+	PG_RETURN_INT32(a > b);
+}

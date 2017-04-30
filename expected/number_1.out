@@ -166,7 +166,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM numtab WHERE num = 1000::bigint;
                    QUERY PLAN                   
 ------------------------------------------------
  Index Only Scan using numtab_num_idx on numtab
-   Index Cond: (num = '1000'::bigint)
+   Index Cond: (num = 1000::bigint)
 (2 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM numtab WHERE num = 1000::int;
