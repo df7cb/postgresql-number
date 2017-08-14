@@ -37,65 +37,123 @@ static Number *
 number_from_int64 (int64_t l)
 {
 	Number		*n;
-	
+
 	if (l == 0)
 	{
 		n = palloc(VARHDRSZ + 0);
 		SET_VARSIZE(n, VARHDRSZ + 0);
+		return n;
 	}
-	else if (l >= INT8_MIN && l <= INT8_MAX)
+
+	if (l > 0) {
+		l -= 1;
+	}
+
+	if (l >= INT8_MIN && l <= INT8_MAX)
 	{
 		int8_t c = l;
 		n = palloc(VARHDRSZ + 1);
 		SET_VARSIZE(n, VARHDRSZ + 1);
 		memcpy(&n->data, &c, 1);
+		return n;
 	}
-	else if (l >= INT16_MIN && l <= INT16_MAX)
+
+	if (l > 0) {
+		l -= 1 << 7;
+	} else {
+		l += 1 << 7;
+	}
+
+	if (l >= INT16_MIN && l <= INT16_MAX)
 	{
 		int16_t i = l;
 		n = palloc(VARHDRSZ + 2);
 		SET_VARSIZE(n, VARHDRSZ + 2);
 		memcpy(&n->data, &i, 2);
+		return n;
 	}
-	else if (l >= INT24_MIN && l <= INT24_MAX)
+
+	if (l > 0) {
+		l -= 1 << 15;
+	} else {
+		l += 1 << 15;
+	}
+
+	if (l >= INT24_MIN && l <= INT24_MAX)
 	{
 		int32_t i = l;
 		n = palloc(VARHDRSZ + 3);
 		SET_VARSIZE(n, VARHDRSZ + 3);
 		memcpy(&n->data, &i, 3); /* little endian */
+		return n;
 	}
-	else if (l >= INT32_MIN && l <= INT32_MAX)
+
+	if (l > 0) {
+		l -= 1 << 23;
+	} else {
+		l += 1 << 23;
+	}
+
+	if (l >= INT32_MIN && l <= INT32_MAX)
 	{
 		int32_t i = l;
 		n = palloc(VARHDRSZ + 4);
 		SET_VARSIZE(n, VARHDRSZ + 4);
 		memcpy(&n->data, &i, 4);
+		return n;
 	}
-	else if (l >= INT40_MIN && l <= INT40_MAX)
+
+	if (l > 0) {
+		l -= 1L << 31;
+	} else {
+		l += 1L << 31;
+	}
+
+	if (l >= INT40_MIN && l <= INT40_MAX)
 	{
 		n = palloc(VARHDRSZ + 5);
 		SET_VARSIZE(n, VARHDRSZ + 5);
 		memcpy(&n->data, &l, 5); /* little endian */
+		return n;
 	}
-	else if (l >= INT48_MIN && l <= INT48_MAX)
+
+	if (l > 0) {
+		l -= 1L << 39;
+	} else {
+		l += 1L << 39;
+	}
+
+	if (l >= INT48_MIN && l <= INT48_MAX)
 	{
 		n = palloc(VARHDRSZ + 6);
 		SET_VARSIZE(n, VARHDRSZ + 6);
 		memcpy(&n->data, &l, 6); /* little endian */
+		return n;
 	}
-	else if (l >= INT56_MIN && l <= INT56_MAX)
+
+	if (l > 0) {
+		l -= 1L << 47;
+	} else {
+		l += 1L << 47;
+	}
+
+	if (l >= INT56_MIN && l <= INT56_MAX)
 	{
 		n = palloc(VARHDRSZ + 7);
 		SET_VARSIZE(n, VARHDRSZ + 7);
 		memcpy(&n->data, &l, 7); /* little endian */
-	}
-	else
-	{
-		n = palloc(VARHDRSZ + 8);
-		SET_VARSIZE(n, VARHDRSZ + 8);
-		memcpy(&n->data, &l, 8);
+		return n;
 	}
 
+	if (l > 0) {
+		l -= 1L << 55;
+	} else {
+		l += 1L << 55;
+	}
+
+	n = palloc(VARHDRSZ + 8);
+	SET_VARSIZE(n, VARHDRSZ + 8);
+	memcpy(&n->data, &l, 8);
 	return n;
 }
 
@@ -111,48 +169,109 @@ number_to_int64 (Number *n)
 		case VARHDRSZ + 1:
 		{
 			int8_t *c = (void *) VARDATA_ANY(n);
-			return *c;
+
+			int64_t a = *c;
+			if (a >= 0) {
+				a += 1;
+			}
+
+			return a;
 		}
 		case VARHDRSZ + 2:
 		{
 			int16_t i;
 			memcpy(&i, VARDATA_ANY(n), 2);
-			return i;
+
+			int64_t a = i;
+			if (a >= 0) {
+				a += (1 << 7) + 1;
+			} else {
+				a -= (1 << 7);
+			}
+
+			return a;
 		}
 		case VARHDRSZ + 3:
 		{
 			int32_t i = 0;
 			memcpy(&i, VARDATA_ANY(n), 3);
-			return (i<<8)>>8;
+
+			int64_t a = (i<<8)>>8;
+			if (a >= 0) {
+				a += (1 << 15) + (1 << 7) + 1;
+			} else {
+				a -= (1 << 15) + (1 << 7);
+			}
+
+			return a;
 		}
 		case VARHDRSZ + 4:
 		{
 			int32_t i;
 			memcpy(&i, VARDATA_ANY(n), 4);
-			return i;
+
+			int64_t a = i;
+			if (a >= 0) {
+				a += (1 << 23) + (1 << 15) + (1 << 7) + 1;
+			} else {
+				a -= (1 << 23) + (1 << 15) + (1 << 7);
+			}
+
+			return a;
 		}
 		case VARHDRSZ + 5:
 		{
 			int64_t i;
 			memcpy(&i, VARDATA_ANY(n), 5);
-			return (i<<24)>>24;
+			i = (i<<24)>>24;
+
+			if (i >= 0) {
+				i += (1L << 31) + (1 << 23) + (1 << 15) + (1 << 7) + 1;
+			} else {
+				i -= (1L << 31) + (1 << 23) + (1 << 15) + (1 << 7);
+			}
+
+			return i;
 		}
 		case VARHDRSZ + 6:
 		{
 			int64_t i;
 			memcpy(&i, VARDATA_ANY(n), 6);
-			return (i<<16)>>16;
+			i = (i<<16)>>16;
+
+			if (i >= 0) {
+				i += (1L << 39) + (1L << 31) + (1 << 23) + (1 << 15) + (1 << 7) + 1;
+			} else {
+				i -= (1L << 39) + (1L << 31) + (1 << 23) + (1 << 15) + (1 << 7);
+			}
+
+			return i;
 		}
 		case VARHDRSZ + 7:
 		{
 			int64_t i;
 			memcpy(&i, VARDATA_ANY(n), 7);
-			return (i<<8)>>8;
+			i = (i<<8)>>8;
+
+			if (i >= 0) {
+				i += (1L << 47) + (1L << 39) + (1L << 31) + (1 << 23) + (1 << 15) + (1 << 7) + 1;
+			} else {
+				i -= (1L << 47) + (1L << 39) + (1L << 31) + (1 << 23) + (1 << 15) + (1 << 7);
+			}
+
+			return i;
 		}
 		case VARHDRSZ + 8:
 		{
 			int64_t i;
 			memcpy(&i, VARDATA_ANY(n), 8);
+
+			if (i >= 0) {
+				i += (1L << 55) + (1L << 47) + (1L << 39) + (1L << 31) + (1 << 23) + (1 << 15) + (1 << 7) + 1;
+			} else {
+				i -= (1L << 55) + (1L << 47) + (1L << 39) + (1L << 31) + (1 << 23) + (1 << 15) + (1 << 7);
+			}
+
 			return i;
 		}
 		default:
